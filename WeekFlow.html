@@ -14,19 +14,41 @@
             background: #f8fafc; /* 添加浅色背景 */
         }
 
+        html, body {
+            height: 100%;
+            min-height: 100vh; /* 新增 */
+        }
+
         body {
             font-family: system-ui, sans-serif;
             max-width: 800px;
             margin: 2rem auto;
             padding: 0 1rem;
+            position: relative;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(45deg, #f8fafc 20%, #e2e8f0 80%); /* 减少颜色对比度 */
+            filter: blur(60px); /* 增大模糊半径 */
+            opacity: 0.2; /* 进一步降低透明度 */
+            z-index: -1;
         }
 
         .container {
-            background: white;
+            background: #ffffff; /* 改为纯白色 */
             border-radius: 12px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.08); /* 加深阴影 */
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
             padding: 2rem;
             position: relative;
+            z-index: 1;
         }
 
         .section {
@@ -69,6 +91,19 @@
             margin: 0.5rem 0;
             align-items: center;
             position: relative;
+            user-select: auto;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .input-group.dragging {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            background: white;
+        }
+
+        .sortable-container {
+            transition: all 0.3s ease;
         }
 
         /* 新增日期选择器样式 */
@@ -99,6 +134,7 @@
             padding: 0.5rem;
             opacity: 0.5;
             transition: opacity 0.2s;
+            user-select: none;
         }
 
         .drag-handle:hover {
@@ -144,12 +180,39 @@
         }
 
         .export-btn {
-            position: absolute;
-            top: 24px;
-            right: 24px;
+            display: flex; /* 新增flex布局 */
+            align-items: center; /* 垂直居中 */
+            justify-content: center; /* 水平居中 */
+            gap: 8px; /* 新增图标文字间距 */
+            width: 200px;
+            margin: 2rem auto 0;
             background: var(--primary);
             color: white;
             border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 16px;
+        }
+
+        /* 新增 SVG 图标对齐修正 */
+        .export-btn svg {
+            margin: 0; /* 移除默认边距 */
+            flex-shrink: 0; /* 禁止图标缩放 */
+        }
+
+        .export-btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+        }
+
+        .clear-btn {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            background: #EF4444;
             padding: 12px 24px;
             border-radius: 8px;
             cursor: pointer;
@@ -157,13 +220,28 @@
             display: flex;
             gap: 8px;
             align-items: center;
+            color: white;
+            border: none;
             font-weight: 500;
+            z-index: 10;
         }
 
-        .export-btn:hover {
-            background: var(--primary-hover);
+        .clear-btn:hover {
+            background: #DC2626;
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+
+        .color-tag {
+            width: 4px;
+            height: 24px;
+            background: #93c5fd;
+            border-radius: 2px;
+            margin-right: 8px;
+            transition: 0.3s ease;
+        }
+        .input-group:hover .color-tag {
+            width: 8px;
         }
     </style>
 </head>
@@ -171,20 +249,18 @@
     <div class="container">
         <h1 id="weekTitle" style="margin-bottom: 1.5rem; color: #1F2937; font-size: 1.5rem; font-weight: 600;"></h1>
 
-        <button class="export-btn" onclick="exportToWord()">
-            <svg class="spinner" width="18" height="18" viewBox="0 0 24 24" style="display:none;">
-                <path fill="currentColor" d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"/>
-            </svg>
+        <button class="clear-btn" onclick="confirmClear()">
             <svg width="18" height="18" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M14,17H7V15H14V17M17,13H7V11H17V13M17,9H7V7H17V9M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3Z"/>
+                <path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
             </svg>
-            导出周报
+            清空数据
         </button>
-
+        
         <div class="section">
             <div class="section-title">本周工作内容</div>
             <div id="work-content" class="sortable-container">
                 <div class="input-group" draggable="true">
+                    <div class="color-tag"></div>
                     <div class="drag-handle">≡</div>
                     <input type="date" class="date-picker" placeholder="选择日期">
                     <input type="text" class="input-field" placeholder="输入工作内容">
@@ -193,12 +269,13 @@
             </div>
             <button class="add-row-btn" onclick="addNewRow(this)">+ 添加新条目</button>
         </div>
-
+        
         <!-- 新增本周工作汇总 -->
         <div class="section">
             <div class="section-title">本周工作汇总</div>
             <div id="work-summary" class="sortable-container">
                 <div class="input-group" draggable="true">
+                    <div class="color-tag"></div>
                     <div class="drag-handle">≡</div>
                     <input type="text" class="input-field" placeholder="输入汇总内容">
                     <div class="delete-btn">×</div>
@@ -212,6 +289,7 @@
             <div class="section-title">下周工作计划</div>
             <div id="next-week-plan" class="sortable-container">
                 <div class="input-group" draggable="true">
+                    <div class="color-tag"></div>
                     <div class="drag-handle">≡</div>
                     <input type="text" class="input-field" placeholder="输入计划内容">
                     <div class="delete-btn">×</div>
@@ -219,21 +297,95 @@
             </div>
             <button class="add-row-btn" onclick="addNewRow(this)">+ 添加新条目</button>
         </div>
+
+        <button class="export-btn" onclick="exportToWord()">
+            <svg class="spinner" width="18" height="18" viewBox="0 0 24 24" style="display:none;">
+                <path fill="currentColor" d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"/>
+            </svg>
+            <svg width="18" height="18" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M14,17H7V15H14V17M17,13H7V11H17V13M17,9H7V7H17V9M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3Z"/>
+            </svg>
+            导出周报
+        </button>
         
     </div>
-
+    
     <div style="text-align: center; margin-top: 2rem; color: #666; font-size: 0.875rem; padding: 1rem 0; border-top: 1px solid #eee;">
         <span id="hitokoto-text">加载中...</span>
-
+        
         <!-- 新增开源声明 -->
         <div style="margin-top: 1rem; font-size: 0.75rem; color: #999;">
             © 2025 Developed by TiantianYZJ 
-            | 遵循 <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" style="color: var(--primary);">GNU GPLv3</a> 协议
+            | 遵循 <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" style="color: var(--primary);">GNU GPLv3</a> 开源协议
             | GitHub <a href="https://github.com/TiantianYZJ/WeekFlow" target="_blank" style="color: var(--primary);">源码仓库</a>
         </div>
     </div>
 
     <script>
+        // window.addEventListener('beforeunload', (e) => {
+            //     if (hasUnsavedChanges()) { // 需要实现 hasUnsavedChanges 函数
+        //         e.preventDefault();
+        //         e.returnValue = '';
+        //     }
+        // });
+
+        // function hasUnsavedChanges() {
+        //     return Array.from(document.querySelectorAll('.input-field'))
+        //         .some(input => input.value.trim() !== '');
+        // }
+
+        // 在脚本中添加清空功能
+        function confirmClear() {
+            if (confirm('确定要清空所有数据吗？此操作不可恢复！')) {
+                // 清空所有输入
+                document.querySelectorAll('.input-group').forEach(group => group.remove());
+                // 清除本地存储
+                localStorage.removeItem('weekflow-draft');
+                // 恢复初始状态
+                ['work-content', 'work-summary', 'next-week-plan'].forEach(id => {
+                    const container = document.getElementById(id);
+                    const template = container.querySelector('.input-group')?.cloneNode(true) || createInitialRow(id);
+                    container.innerHTML = '';
+                    container.appendChild(template);
+                });
+
+                // 修改恢复初始状态的方式
+                ['work-content', 'work-summary', 'next-week-plan'].forEach(id => {
+                    const container = document.getElementById(id);
+                    container.innerHTML = '';
+                    container.appendChild(createInitialRow(id)); // 直接创建新初始行
+                });
+            }
+        }
+
+        // 创建初始行模板
+        function createInitialRow(sectionId) {
+            const row = document.createElement('div');
+            row.className = 'input-group';
+            row.draggable = true;
+            row.innerHTML = `
+                <div class="color-tag"></div> <!-- 新增颜色标签 -->
+                <div class="drag-handle">≡</div>
+                ${sectionId === 'work-content' ? '<input type="date" class="date-picker">' : ''}
+                <input type="text" class="input-field" placeholder="${
+                    sectionId === 'work-content' ? '输入工作内容' : 
+                    sectionId === 'work-summary' ? '输入汇总内容' : '输入计划内容'}">
+                <div class="delete-btn">×</div>
+            `;
+            
+            // 新增颜色设置逻辑
+            const colorTag = row.querySelector('.color-tag');
+            if (sectionId === 'work-content') {
+                colorTag.style.background = '#93c5fd';
+            } else if (sectionId === 'work-summary') {
+                colorTag.style.background = '#86efac';
+            } else {
+                colorTag.style.background = '#d8b4fe';
+            }
+            
+            return row;
+        }
+
         // 拖拽排序功能
         document.querySelectorAll('.sortable-container').forEach(container => {
             let draggedItem = null;
@@ -275,7 +427,7 @@
         });
 
         // 修改添加新行函数
-        function addNewRow(button) {
+        function addNewRow(button, data = {}) {
             const container = button.previousElementSibling;
             const newRow = document.createElement('div');
             newRow.className = 'input-group';
@@ -283,14 +435,34 @@
 
             // 根据容器ID判断是否添加日期选择器
             const isContentSection = container.id === 'work-content';
+
+            // 根据容器ID设置对应的placeholder
+            const sectionId = container.id;
+            const placeholderMap = {
+                'work-content': '输入工作内容',
+                'work-summary': '输入汇总内容', 
+                'next-week-plan': '输入计划内容'
+            };
             
-            // 更新模板添加日期选择器
+            // 更新模板添加颜色标签
             newRow.innerHTML = `
+                <div class="color-tag"></div> <!-- 新增颜色标签 -->
                 <div class="drag-handle">≡</div>
-                ${isContentSection ? '<input type="date" class="date-picker" placeholder="选择日期">' : ''}
-                <input type="text" class="input-field" placeholder="${isContentSection ? '输入工作内容' : '输入内容'}">
+                ${sectionId === 'work-content' ? '<input type="date" class="date-picker" placeholder="选择日期">' : ''}
+                <input type="text" class="input-field" placeholder="${placeholderMap[sectionId] || '输入内容'}">
                 <div class="delete-btn">×</div>
             `;
+
+            // 新增颜色分类逻辑
+            const colorTag = newRow.querySelector('.color-tag');
+            if (sectionId === 'work-content') {
+                colorTag.style.background = '#93c5fd'; // 蓝色
+            } else if (sectionId === 'work-summary') {
+                colorTag.style.background = '#86efac'; // 绿色
+            } else {
+                colorTag.style.background = '#d8b4fe'; // 紫色
+            }
+
             container.appendChild(newRow);
             newRow.querySelector('.input-field').focus();  // 聚焦到文本输入框
             
@@ -298,6 +470,36 @@
             newRow.querySelector('.delete-btn').addEventListener('click', function() {
                 this.closest('.input-group').remove();
             });
+
+            if (data.date) newRow.querySelector('.date-picker').value = data.date;
+            if (data.text) newRow.querySelector('.input-field').value = data.text;
+
+            // 添加事件监听：聚焦时禁用拖动，失焦时恢复拖动
+            newRow.querySelectorAll('.date-picker, .input-field').forEach(input => {
+                input.addEventListener('focus', () => {
+                    newRow.draggable = false;
+                    newRow.style.opacity = '0.8'; // 添加视觉反馈
+                });
+                input.addEventListener('blur', () => {
+                    newRow.draggable = true;
+                    newRow.style.opacity = '1';
+                });
+            });
+        }
+
+        // 添加自动保存监听
+        document.addEventListener('input', () => {
+            saveDraft();
+            debouncedSave();
+        });
+
+        const debouncedSave = debounce(saveDraft, 1000);
+        function debounce(fn, delay) {
+            let timer;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn.apply(this, args), delay);
+            };
         }
 
         // 修改回车创建新行逻辑
@@ -481,6 +683,64 @@
             }
         }
 
+        function saveDraft() {
+            const data = {
+                workContent: serializeSection('work-content'),
+                workSummary: serializeSection('work-summary'),
+                nextWeekPlan: serializeSection('next-week-plan')
+            };
+            localStorage.setItem('weekflow-draft', JSON.stringify(data));
+        }
+
+        function serializeSection(sectionId) {
+            return Array.from(document.querySelectorAll(`#${sectionId} .input-group`)).map(group => ({
+                date: group.querySelector('.date-picker')?.value || '',
+                text: group.querySelector('.input-field').value
+            }));
+        }
+
+        // 在页面加载时恢复数据
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!localStorage.getItem('weekflow-draft')) {
+                // 替换克隆模板方式，改为调用 createInitialRow
+                ['work-content', 'work-summary', 'next-week-plan'].forEach(id => {
+                    const container = document.getElementById(id);
+                    container.innerHTML = ''; // 清空现有内容
+                    container.appendChild(createInitialRow(id)); // 创建新初始行
+                });
+            }
+
+            const draft = localStorage.getItem('weekflow-draft');
+            if (draft) {
+                const data = JSON.parse(draft);
+                restoreSection('work-content', data.workContent);
+                restoreSection('work-summary', data.workSummary);
+                restoreSection('next-week-plan', data.nextWeekPlan);
+            }
+
+            // 为现有输入框添加拖动控制
+            document.querySelectorAll('.input-group').forEach(group => {
+                group.querySelectorAll('.date-picker, .input-field').forEach(input => {
+                    input.addEventListener('focus', () => {
+                        group.draggable = false;
+                        group.style.opacity = '0.8';
+                    });
+                    input.addEventListener('blur', () => {
+                        group.draggable = true;
+                        group.style.opacity = '1';
+                    });
+                });
+            });
+        });
+
+        function restoreSection(sectionId, items) {
+            const container = document.getElementById(sectionId);
+            container.innerHTML = '';
+            items.forEach(item => {
+                addNewRow(container.nextElementSibling, item);
+            });
+        }
+
         function updateWeekTitle() {
             const now = new Date();
             const day = now.getDay();
@@ -504,7 +764,7 @@
             }
 
             document.getElementById('weekTitle').textContent = 
-                `${monday.getFullYear()}年第${weekNumber}周 工作日报 ` +
+                `${monday.getFullYear()}年第${weekNumber}周 工作周报 ` +
                 `（${formatMMDD(monday)} - ${formatMMDD(friday)}）`;
         }
 
