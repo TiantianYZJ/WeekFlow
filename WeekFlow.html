@@ -1,325 +1,575 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <title>智能周报生成系统</title>
-    <script src="https://cdn.jsdelivr.net/npm/docx@8.0.1/build/index.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
-    <style>
-        :root {
-            --primary: #3B82F6;
-            --border: #E5E7EB;
-            --hover-bg: #F3F4F6;
-            --primary-hover: #2563eb;
-            background: #f8fafc; /* 添加浅色背景 */
-        }
+    <head>
+        <meta charset="UTF-8">
+        <title>智能周报生成系统</title>
+        <script src="https://cdn.jsdelivr.net/npm/docx@8.0.1/build/index.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+        <style>
+            :root {
+                --primary: #3B82F6;
+                --border: #E5E7EB;
+                --hover-bg: #F3F4F6;
+                --primary-hover: #2563eb;
+                background: #f8fafc; /* 添加浅色背景 */
+            }
 
-        html, body {
-            height: 100%;
-            min-height: 100vh; /* 新增 */
-        }
+            html, body {
+                height: 100%;
+                min-height: 100vh; /* 新增 */
+            }
 
-        body {
-            font-family: system-ui, sans-serif;
-            max-width: 800px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-            position: relative;
-            overflow-x: hidden;
-            min-height: 100vh;
-        }
+            body {
+                font-family: system-ui;
+                margin: 0;
+                padding: 0 0;
+                position: relative;
+                overflow-x: hidden;
+                min-height: 100vh;
+                display: flex;          /* 新增 */
+                flex-direction: column; /* 新增 */
+            }
 
-        body::after {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: linear-gradient(45deg, #f8fafc 20%, #e2e8f0 80%); /* 减少颜色对比度 */
-            filter: blur(60px); /* 增大模糊半径 */
-            opacity: 0.2; /* 进一步降低透明度 */
-            z-index: -1;
-        }
+            body::after {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: linear-gradient(45deg, #f8fafc 20%, #e2e8f0 80%); /* 减少颜色对比度 */
+                filter: blur(60px); /* 增大模糊半径 */
+                opacity: 0.2; /* 进一步降低透明度 */
+                z-index: -1;
+            }
 
-        .container {
-            background: #ffffff; /* 改为纯白色 */
-            border-radius: 12px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
-            padding: 2rem;
-            position: relative;
-            z-index: 1;
-        }
+            .container {
+                background: #ffffff; /* 改为纯白色 */
+                border-radius: 12px;
+                box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+                padding: 2rem;
+                position: relative;
+                z-index: 1;
+            }
 
-        .section {
-            margin: 2rem 0;
-            border: 1px solid #e2e8f0; /* 修改边框颜色 */
-            border-radius: 12px;
-            padding: 1.5rem;
-            background: white;
-            transition: transform 0.2s; /* 添加悬停动效 */
-        }
+            /* 新增页脚样式 */
+            .app-footer {
+                text-align: center;
+                color: #666;
+                padding: 1rem 0;
+                border-top: 1px solid #eee;
+                flex-shrink: 0; /* 关键属性 */
+            }
 
-        .section:hover {
-            transform: translateY(-2px);
-        }
+            .footer-info {
+                font-size: 0.75rem;
+                color: #999;
+                margin-top: 0.5rem;
+            }
 
-        .section-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: #1e40af; /* 深蓝色标题 */
-            position: relative;
-            padding-left: 28px;
-        }
+            .footer-info a {
+                color: var(--primary);
+                text-decoration: none;
+            }
 
-        .section-title::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 20px;
-            height: 20px;
-            background: #bfdbfe; /* 装饰性圆点 */
-            border-radius: 50%;
-        }
+            .section {
+                margin: 2rem 0;
+                border: 1px solid #e2e8f0; /* 修改边框颜色 */
+                border-radius: 12px;
+                padding: 1.5rem;
+                background: white;
+                transition: transform 0.2s; /* 添加悬停动效 */
+            }
 
-        .input-group {
-            display: flex;
-            gap: 0.5rem;
-            margin: 0.5rem 0;
-            align-items: center;
-            position: relative;
-            user-select: auto;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
+            .section:hover {
+                transform: translateY(-2px);
+            }
 
-        .input-group.dragging {
-            transform: scale(1.02);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            z-index: 10;
-            background: white;
-        }
+            .section-title {
+                font-size: 1.25rem;
+                font-weight: 600;
+                margin-bottom: 1rem;
+                color: #1e40af; /* 深蓝色标题 */
+                position: relative;
+                padding-left: 28px;
+            }
 
-        .sortable-container {
-            transition: all 0.3s ease;
-        }
+            .section-title::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 20px;
+                height: 20px;
+                background: #bfdbfe; /* 装饰性圆点 */
+                border-radius: 50%;
+            }
 
-        /* 新增日期选择器样式 */
-        .date-picker {
-            width: 120px;
-            padding: 0.75rem;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            margin-right: 0.5rem;
-        }
+            .input-group {
+                display: flex;
+                gap: 0.5rem;
+                margin: 0.5rem 0;
+                align-items: center;
+                position: relative;
+                user-select: auto;
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+            }
 
-        .input-field {
-            flex: 1;
-            padding: 0.75rem;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding-right: 2rem;
-        }
+            .input-group.dragging {
+                transform: scale(1.02);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                z-index: 10;
+                background: white;
+            }
 
-        .input-field:focus {
-            outline: none;
-            border-color: #93c5fd;
-            box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.3);
-        }
+            .sortable-container {
+                transition: all 0.3s ease;
+            }
 
-        .drag-handle {
-            cursor: move;
-            padding: 0.5rem;
-            opacity: 0.5;
-            transition: opacity 0.2s;
-            user-select: none;
-        }
+            /* 新增日期选择器样式 */
+            .date-picker {
+                width: 120px;
+                padding: 0.75rem;
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                margin-right: 0.5rem;
+            }
 
-        .drag-handle:hover {
-            opacity: 1;
-        }
+            .input-field {
+                flex: 1;
+                padding: 0.75rem;
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                padding-right: 2rem;
+                min-height: 40px; /* 新增最小高度 */
+                resize: vertical;  /* 允许垂直缩放 */
+                overflow-y: hidden; /* 添加滚动条 */
+                white-space: pre-wrap; /* 保留换行 */
+            }
 
-        .delete-btn {
-            position: absolute;
-            right: 0.5rem;
-            top: 50%;
-            transform: translateY(-50%);
-            opacity: 0;
-            transition: opacity 0.2s;
-            cursor: pointer;
-            color: #6B7280;
-        }
+            .input-field:focus {
+                outline: none;
+                border-color: #93c5fd;
+                box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.3);
+            }
 
-        .input-group:hover .delete-btn {
-            opacity: 0.5;
-        }
+            .drag-handle {
+                cursor: move;
+                padding: 0.5rem;
+                opacity: 0.5;
+                transition: opacity 0.2s;
+                user-select: none;
+            }
 
-        .delete-btn:hover {
-            opacity: 1 !important;
-            color: #EF4444;
-        }
+            .drag-handle:hover {
+                opacity: 1;
+            }
 
-        .add-row-btn {
-            width: 100%;
-            margin-top: 0.5rem;
-            padding: 0.5rem;
-            border: 1px dashed var(--border);
-            border-radius: 6px;
-            background: none;
-            cursor: pointer;
-            color: #6B7280;
-            transition: all 0.2s;
-        }
+            .delete-btn {
+                position: absolute;
+                right: 0.5rem;
+                top: 50%;
+                transform: translateY(-50%);
+                opacity: 0;
+                transition: opacity 0.2s;
+                cursor: pointer;
+                color: #6B7280;
+            }
 
-        .add-row-btn:hover {
-            background: var(--hover-bg);
-            border-color: var(--primary);
-            color: var(--primary);
-        }
+            .input-group:hover .delete-btn {
+                opacity: 0.5;
+            }
 
-        .export-btn {
-            display: flex; /* 新增flex布局 */
-            align-items: center; /* 垂直居中 */
-            justify-content: center; /* 水平居中 */
-            gap: 8px; /* 新增图标文字间距 */
-            width: 200px;
-            margin: 2rem auto 0;
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 14px 28px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 16px;
-        }
+            .delete-btn:hover {
+                opacity: 1 !important;
+                color: #EF4444;
+            }
 
-        /* 新增 SVG 图标对齐修正 */
-        .export-btn svg {
-            margin: 0; /* 移除默认边距 */
-            flex-shrink: 0; /* 禁止图标缩放 */
-        }
+            .add-row-btn {
+                width: 100%;
+                margin-top: 0.5rem;
+                padding: 0.5rem;
+                border: 1px dashed var(--border);
+                border-radius: 6px;
+                background: none;
+                cursor: pointer;
+                color: #6B7280;
+                transition: all 0.2s;
+            }
 
-        .export-btn:hover {
-            background: var(--primary-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
-        }
+            .add-row-btn:hover {
+                background: var(--hover-bg);
+                border-color: var(--primary);
+                color: var(--primary);
+            }
 
-        .clear-btn {
-            position: absolute;
-            top: 24px;
-            right: 24px;
-            background: #EF4444;
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            color: white;
-            border: none;
-            font-weight: 500;
-            z-index: 10;
-        }
+            .export-btn {
+                display: flex; /* 新增flex布局 */
+                align-items: center; /* 垂直居中 */
+                justify-content: center; /* 水平居中 */
+                gap: 8px; /* 新增图标文字间距 */
+                width: 200px;
+                margin: 2rem auto 0;
+                background: var(--primary);
+                color: white;
+                border: none;
+                padding: 14px 28px;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: all 0.2s;
+                font-size: 16px;
+            }
 
-        .clear-btn:hover {
-            background: #DC2626;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
-        }
+            /* 新增 SVG 图标对齐修正 */
+            .export-btn svg {
+                margin: 0; /* 移除默认边距 */
+                flex-shrink: 0; /* 禁止图标缩放 */
+            }
 
-        .color-tag {
-            width: 4px;
-            height: 24px;
-            background: #93c5fd;
-            border-radius: 2px;
-            margin-right: 8px;
-            transition: 0.3s ease;
-        }
-        .input-group:hover .color-tag {
-            width: 8px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1 id="weekTitle" style="margin-bottom: 1.5rem; color: #1F2937; font-size: 1.5rem; font-weight: 600;"></h1>
+            .export-btn:hover {
+                background: var(--primary-hover);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+            }
 
-        <button class="clear-btn" onclick="confirmClear()">
-            <svg width="18" height="18" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-            </svg>
-            清空数据
-        </button>
-        
-        <div class="section">
-            <div class="section-title">本周工作内容</div>
-            <div id="work-content" class="sortable-container">
-                <div class="input-group" draggable="true">
-                    <div class="color-tag"></div>
-                    <div class="drag-handle">≡</div>
-                    <input type="date" class="date-picker" placeholder="选择日期">
-                    <input type="text" class="input-field" placeholder="输入工作内容">
-                    <div class="delete-btn">×</div>
+            .clear-btn {
+                position: absolute;
+                top: 24px;
+                right: 24px;
+                background: #EF4444;
+                padding: 12px 24px;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: all 0.2s;
+                display: flex;
+                gap: 8px;
+                align-items: center;
+                color: white;
+                border: none;
+                font-weight: 500;
+                z-index: 10;
+            }
+
+            .clear-btn:hover {
+                background: #DC2626;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+            }
+
+            .color-tag {
+                width: 4px;
+                height: 24px;
+                background: #93c5fd;
+                border-radius: 2px;
+                margin-right: 8px;
+                transition: 0.3s ease;
+            }
+            
+            .input-group:hover .color-tag {
+                width: 8px;
+            }
+
+
+            /* 新增分栏布局 */
+            .main-container {
+                display: flex;
+                gap: 1.5rem;
+                margin: 1rem;
+                padding: 1rem auto;
+                max-width: none;
+                flex-grow: 1;
+                height: auto !important;
+                flex: 1;
+                padding-bottom: 2rem;
+            }
+
+            .left-panel {
+                position: fixed;
+                width: 22.5%; /* 改为比例布局 */
+                height: calc(100vh - 40px);
+                overflow-y: auto;
+                padding-right: 0.5rem;
+            }
+
+            .right-content {
+                flex: 3; /* 比例调整为1:2 */
+                margin-left: calc(22.5% + 20px); /* 动态计算边距 */
+                height: auto !important;
+                overflow-y: auto;
+            }
+
+            /* 新增占位卡片样式 */
+            .placeholder-card {
+                background: white;
+                border-radius: 12px;
+                padding: 2rem;
+                text-align: center;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+                border: 1px solid #e2e8f0;
+                min-height: 300px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+
+            /* 新增数据分析面板样式 */
+            .data-panel {
+                display: flex;
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+
+            .data-card {
+                background: white;
+                border-radius: 12px;
+                padding: 1.5rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            }
+
+            .data-title {
+                font-size: 0.875rem;
+                color: #64748b;
+            }
+
+            .data-value {
+                font-size: 2rem;
+                font-weight: 600;
+                color: #1e40af;
+            }
+
+            .stats-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+
+            .stat-item {
+                background: #f8fafc;
+                border-radius: 8px;
+                padding: 1rem;
+                text-align: center;
+            }
+
+            .stat-label {
+                display: block;
+                font-size: 0.75rem;
+                color: #64748b;
+            }
+
+            .stat-value {
+                font-size: 1.25rem;
+                font-weight: 600;
+                color: #3b82f6;
+            }
+
+            .notice-box {
+                background: #fff7ed;
+                border-radius: 8px;
+                padding: 1rem;
+                border-left: 4px solid #fb923c;
+            }
+
+            .notice-box h3 {
+                margin: 0 0 0.5rem 0;
+                font-size: 0.875rem;
+                color: #c2410c;
+            }
+
+            .notice-box ul {
+                margin: 0;
+                padding-left: 1.25rem;
+                font-size: 0.875rem;
+                color: #854d0e;
+            }
+
+            .progress-text {
+                font-size: 0.75rem;
+                fill: #3b82f6;
+                text-anchor: middle;
+                dominant-baseline: middle;
+            }
+
+            /* 移动端适配保持原样 */
+            @media (max-width: 768px) {
+                .left-panel {
+                    width: 100%;
+                    max-width: none;
+                    position: static;
+                }
+                
+                .right-content {
+                    margin-left: 0;
+                    max-width: none;
+                }
+
+                .stats-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="main-container">
+            <!-- 新增左侧面板 -->
+            <div class="left-panel">
+                <div class="container">
+                    <div class="data-panel">
+                        <div class="data-card">
+                            <div class="data-title">总条目</div>
+                            <div class="data-value" id="totalCount">0</div>
+                        </div>
+                        
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <span class="stat-label">内容条目</span>
+                                <span class="stat-value" id="workCount">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">汇总条目</span>
+                                <span class="stat-value" id="summaryCount">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">下周计划</span>
+                                <span class="stat-value" id="planCount">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">重点工作</span>
+                                <span class="stat-value" id="keyworkCount">0</span>
+                            </div>
+                        </div>
+
+                        <!-- 新增时间统计卡片 -->
+                        <div class="data-card" style="margin-top: 1rem;">
+                            <div class="data-title">入职公司已经</div>
+                            <div class="stats-grid" id="time-stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">年数</span>
+                                    <span class="stat-value" id="yearsCount">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">月数</span>
+                                    <span class="stat-value" id="monthsCount">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">周数</span>
+                                    <span class="stat-value" id="weeksCount">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">天数</span>
+                                    <span class="stat-value" id="daysCount">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="notice-box">
+                            <h3>注意事项</h3>
+                            <ul>
+                                <li>按住 ≡ 拖动排序</li>
+                                <li>选中输入框进行编辑</li>
+                                <li>点击 × 删除条目</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <button class="add-row-btn" onclick="addNewRow(this)">+ 添加新条目</button>
-        </div>
-        
-        <!-- 新增本周工作汇总 -->
-        <div class="section">
-            <div class="section-title">本周工作汇总</div>
-            <div id="work-summary" class="sortable-container">
-                <div class="input-group" draggable="true">
-                    <div class="color-tag"></div>
-                    <div class="drag-handle">≡</div>
-                    <input type="text" class="input-field" placeholder="输入汇总内容">
-                    <div class="delete-btn">×</div>
+
+            <!-- 原内容包裹在右侧容器 -->
+            <div class="right-content">
+                <!-- 原有 container 内容保持不变... -->
+                <div class="container">
+                    <h1 id="weekTitle" style="margin-bottom: 1.5rem; color: #1F2937; font-size: 1.5rem; font-weight: 600;"></h1>
+
+                    <button class="clear-btn" onclick="confirmClear()">
+                        <svg width="18" height="18" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                        </svg>
+                        清空数据
+                    </button>
+                    
+                    <div class="section">
+                        <div class="section-title">本周工作内容</div>
+                        <div id="work-content" class="sortable-container">
+                            <div class="input-group" draggable="true">
+                                <div class="color-tag"></div>
+                                <div class="drag-handle">≡</div>
+                                <input type="date" class="date-picker" placeholder="选择日期">
+                                <input type="text" class="input-field" placeholder="输入工作内容">
+                                <div class="delete-btn">×</div>
+                            </div>
+                        </div>
+                        <button class="add-row-btn" onclick="addNewRow(this)">+ 添加新条目</button>
+                    </div>
+                    
+                    <!-- 新增本周工作汇总 -->
+                    <div class="section">
+                        <div class="section-title">本周工作汇总</div>
+                        <div id="work-summary" class="sortable-container">
+                            <div class="input-group" draggable="true">
+                                <div class="color-tag"></div>
+                                <div class="drag-handle">≡</div>
+                                <input type="text" class="input-field" placeholder="输入汇总内容">
+                                <div class="delete-btn">×</div>
+                            </div>
+                        </div>
+                        <button class="add-row-btn" onclick="addNewRow(this)">+ 添加新条目</button>
+                    </div>
+
+                    <!-- 新增下周工作计划 -->
+                    <div class="section">
+                        <div class="section-title">下周工作计划</div>
+                        <div id="next-week-plan" class="sortable-container">
+                            <div class="input-group" draggable="true">
+                                <div class="color-tag"></div>
+                                <div class="drag-handle">≡</div>
+                                <input type="text" class="input-field" placeholder="输入计划内容">
+                                <div class="delete-btn">×</div>
+                            </div>
+                        </div>
+                        <button class="add-row-btn" onclick="addNewRow(this)">+ 添加新条目</button>
+                    </div>
+
+                    <!-- 新增重点工作进度汇报 -->
+                    <div class="section">
+                        <div class="section-title">重点工作进度汇报</div>
+                        <div id="key-progress" class="sortable-container">
+                            <div class="input-group" draggable="true">
+                                <div class="color-tag"></div>
+                                <div class="drag-handle">≡</div>
+                                <input type="text" class="input-field" placeholder="输入汇报内容">
+                                <div class="delete-btn">×</div>
+                            </div>
+                        </div>
+                        <button class="add-row-btn" onclick="addNewRow(this)">+ 添加新条目</button>
+                    </div>
+
+                    <button class="export-btn" onclick="exportToWord()">
+                        <svg class="spinner" width="18" height="18" viewBox="0 0 24 24" style="display:none;">
+                            <path fill="currentColor" d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"/>
+                        </svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M14,17H7V15H14V17M17,13H7V11H17V13M17,9H7V7H17V9M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3Z"/>
+                        </svg>
+                        导出周报
+                    </button>
                 </div>
             </div>
-            <button class="add-row-btn" onclick="addNewRow(this)">+ 添加新条目</button>
         </div>
 
-        <!-- 新增下周工作计划 -->
-        <div class="section">
-            <div class="section-title">下周工作计划</div>
-            <div id="next-week-plan" class="sortable-container">
-                <div class="input-group" draggable="true">
-                    <div class="color-tag"></div>
-                    <div class="drag-handle">≡</div>
-                    <input type="text" class="input-field" placeholder="输入计划内容">
-                    <div class="delete-btn">×</div>
-                </div>
+        <footer class="app-footer">
+            <span id="hitokoto-text">加载中...</span>
+            <div class="footer-info">
+                © 2025 Developed by TiantianYZJ 
+                | 遵循 <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GNU GPLv3</a>
+                | GitHub <a href="https://github.com/TiantianYZJ/WeekFlow" target="_blank">源码仓库</a>
             </div>
-            <button class="add-row-btn" onclick="addNewRow(this)">+ 添加新条目</button>
-        </div>
+        </footer>
 
-        <button class="export-btn" onclick="exportToWord()">
-            <svg class="spinner" width="18" height="18" viewBox="0 0 24 24" style="display:none;">
-                <path fill="currentColor" d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"/>
-            </svg>
-            <svg width="18" height="18" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M14,17H7V15H14V17M17,13H7V11H17V13M17,9H7V7H17V9M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3Z"/>
-            </svg>
-            导出周报
-        </button>
-        
-    </div>
-    
-    <div style="text-align: center; margin-top: 2rem; color: #666; font-size: 0.875rem; padding: 1rem 0; border-top: 1px solid #eee;">
-        <span id="hitokoto-text">加载中...</span>
-        
-        <!-- 新增开源声明 -->
-        <div style="margin-top: 1rem; font-size: 0.75rem; color: #999;">
-            © 2025 Developed by TiantianYZJ 
-            | 遵循 <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" style="color: var(--primary);">GNU GPLv3</a> 开源协议
-            | GitHub <a href="https://github.com/TiantianYZJ/WeekFlow" target="_blank" style="color: var(--primary);">源码仓库</a>
-        </div>
-    </div>
+    </body>
 
     <script>
         // window.addEventListener('beforeunload', (e) => {
@@ -342,7 +592,7 @@
                 // 清除本地存储
                 localStorage.removeItem('weekflow-draft');
                 // 恢复初始状态
-                ['work-content', 'work-summary', 'next-week-plan'].forEach(id => {
+                ['work-content', 'work-summary', 'next-week-plan', 'key-progress'].forEach(id => {
                     const container = document.getElementById(id);
                     const template = container.querySelector('.input-group')?.cloneNode(true) || createInitialRow(id);
                     container.innerHTML = '';
@@ -350,13 +600,59 @@
                 });
 
                 // 修改恢复初始状态的方式
-                ['work-content', 'work-summary', 'next-week-plan'].forEach(id => {
+                ['work-content', 'work-summary', 'next-week-plan', 'key-progress'].forEach(id => {
                     const container = document.getElementById(id);
                     container.innerHTML = '';
                     container.appendChild(createInitialRow(id)); // 直接创建新初始行
                 });
+
+                updateStats(); // 新增统计更新
+                setTimeout(updateStats, 0); // 确保DOM更新后再次刷新
             }
         }
+
+        // 新增数据统计功能
+        function updateStats() {
+            // 统计各区域条目数量
+            const workCount = document.querySelectorAll('#work-content .input-group').length;
+            const summaryCount = document.querySelectorAll('#work-summary .input-group').length;
+            const planCount = document.querySelectorAll('#next-week-plan .input-group').length;
+            const keyworkCount = document.querySelectorAll('#key-progress .input-group').length;
+            const total = workCount + summaryCount + planCount + keyworkCount;
+            
+            // 更新数字显示
+            document.getElementById('workCount').textContent = workCount;
+            document.getElementById('summaryCount').textContent = summaryCount;
+            document.getElementById('planCount').textContent = planCount;
+            document.getElementById('keyworkCount').textContent = keyworkCount;
+            document.getElementById('totalCount').textContent = total;
+        }
+
+        // 在JavaScript中添加时间计算函数（放在updateStats函数附近）
+        function updateTimeStats() {
+            const startDate = new Date(2017, 11, 6); // 月份从0开始计算（12月是11）
+            const today = new Date();
+            
+            // 计算时间差
+            const timeDiff = today - startDate;
+            const days = Math.floor(timeDiff / (1000 * 3600 * 24));
+            const weeks = Math.floor(days / 7);
+            const months = Math.floor(days / 30.436875); // 平均每月天数
+            const years = Math.floor(days / 365.2425);   // 平均年天数
+
+            // 更新显示
+            document.getElementById('daysCount').textContent = days;
+            document.getElementById('weeksCount').textContent = weeks;
+            document.getElementById('monthsCount').textContent = months;
+            document.getElementById('yearsCount').textContent = years;
+        }
+
+        // 在DOM加载时和每天自动更新
+        document.addEventListener('DOMContentLoaded', () => {
+            updateTimeStats();
+            setInterval(updateTimeStats, 1000);
+        });
+
 
         // 创建初始行模板
         function createInitialRow(sectionId) {
@@ -369,7 +665,8 @@
                 ${sectionId === 'work-content' ? '<input type="date" class="date-picker">' : ''}
                 <input type="text" class="input-field" placeholder="${
                     sectionId === 'work-content' ? '输入工作内容' : 
-                    sectionId === 'work-summary' ? '输入汇总内容' : '输入计划内容'}">
+                    sectionId === 'work-summary' ? '输入汇总内容' :
+                    sectionId === 'next-week-plan' ? '输入计划内容' : '输入汇报内容'}">
                 <div class="delete-btn">×</div>
             `;
             
@@ -379,6 +676,8 @@
                 colorTag.style.background = '#93c5fd';
             } else if (sectionId === 'work-summary') {
                 colorTag.style.background = '#86efac';
+            } else if (sectionId === 'key-progress') {  // 新增颜色分支
+                colorTag.style.background = '#fca5a5'; // 红色标签
             } else {
                 colorTag.style.background = '#d8b4fe';
             }
@@ -405,6 +704,13 @@
                     container.appendChild(currentItem);
                 } else {
                     container.insertBefore(currentItem, afterElement);
+                }
+            });
+
+            container.addEventListener('click', e => {
+                if (e.target.closest('.delete-btn')) {
+                    e.target.closest('.input-group').remove();
+                    updateStats(); // 确保删除时更新统计
                 }
             });
 
@@ -441,29 +747,33 @@
             const placeholderMap = {
                 'work-content': '输入工作内容',
                 'work-summary': '输入汇总内容', 
-                'next-week-plan': '输入计划内容'
+                'next-week-plan': '输入计划内容',
+                'key-progress': '输入汇报内容'
             };
             
             // 更新模板添加颜色标签
             newRow.innerHTML = `
-                <div class="color-tag"></div> <!-- 新增颜色标签 -->
+                <div class="color-tag"></div>
                 <div class="drag-handle">≡</div>
                 ${sectionId === 'work-content' ? '<input type="date" class="date-picker" placeholder="选择日期">' : ''}
-                <input type="text" class="input-field" placeholder="${placeholderMap[sectionId] || '输入内容'}">
+                <textarea class="input-field" placeholder="${placeholderMap[sectionId] || '输入内容'}"></textarea>
                 <div class="delete-btn">×</div>
             `;
 
             // 新增颜色分类逻辑
             const colorTag = newRow.querySelector('.color-tag');
             if (sectionId === 'work-content') {
-                colorTag.style.background = '#93c5fd'; // 蓝色
+                colorTag.style.background = '#93c5fd';
             } else if (sectionId === 'work-summary') {
-                colorTag.style.background = '#86efac'; // 绿色
+                colorTag.style.background = '#86efac';
+            } else if (sectionId === 'key-progress') {  // 新增颜色分支
+                colorTag.style.background = '#fca5a5'; // 红色标签
             } else {
-                colorTag.style.background = '#d8b4fe'; // 紫色
+                colorTag.style.background = '#d8b4fe';
             }
 
             container.appendChild(newRow);
+            updateStats(); // 添加统计更新
             newRow.querySelector('.input-field').focus();  // 聚焦到文本输入框
             
             // 改为使用事件委托
@@ -491,6 +801,15 @@
         document.addEventListener('input', () => {
             saveDraft();
             debouncedSave();
+        });
+
+        function autoExpand(input) {
+            input.style.height = 'auto';
+            input.style.height = input.scrollHeight + 'px';
+        }
+
+        document.querySelectorAll('.input-field').forEach(input => {
+            input.addEventListener('input', () => autoExpand(input));
         });
 
         const debouncedSave = debounce(saveDraft, 1000);
@@ -524,6 +843,7 @@
                 
                 newRow.querySelector('.input-field').value = '';
                 currentRow.after(newRow);
+                updateStats(); // 新增统计更新
                 newRow.querySelector('.input-field').focus();
                 e.preventDefault();
             }
@@ -581,7 +901,7 @@
                             paragraph: {
                                 spacing: { line: 240 },
                                 indent: { left: 0 }
-                           }
+                        }
                         }],
                         // 新增标题样式
                         documentStyles: [{
@@ -687,7 +1007,8 @@
             const data = {
                 workContent: serializeSection('work-content'),
                 workSummary: serializeSection('work-summary'),
-                nextWeekPlan: serializeSection('next-week-plan')
+                nextWeekPlan: serializeSection('next-week-plan'),
+                keyProgress: serializeSection('key-progress')
             };
             localStorage.setItem('weekflow-draft', JSON.stringify(data));
         }
@@ -699,11 +1020,18 @@
             }));
         }
 
+        // 初始化时和内容变化时更新统计
+        document.addEventListener('DOMContentLoaded', updateStats);
+        document.addEventListener('input', () => {
+            updateStats();
+            debouncedSave();
+        });
+
         // 在页面加载时恢复数据
         document.addEventListener('DOMContentLoaded', () => {
             if (!localStorage.getItem('weekflow-draft')) {
                 // 替换克隆模板方式，改为调用 createInitialRow
-                ['work-content', 'work-summary', 'next-week-plan'].forEach(id => {
+                ['work-content', 'work-summary', 'next-week-plan', 'key-progress'].forEach(id => {
                     const container = document.getElementById(id);
                     container.innerHTML = ''; // 清空现有内容
                     container.appendChild(createInitialRow(id)); // 创建新初始行
@@ -716,6 +1044,7 @@
                 restoreSection('work-content', data.workContent);
                 restoreSection('work-summary', data.workSummary);
                 restoreSection('next-week-plan', data.nextWeekPlan);
+                restoreSection('key-progress', data.keyProgress);
             }
 
             // 为现有输入框添加拖动控制
@@ -735,9 +1064,13 @@
 
         function restoreSection(sectionId, items) {
             const container = document.getElementById(sectionId);
+            if (!container || !items) return; // 添加空值保护
+            
             container.innerHTML = '';
             items.forEach(item => {
-                addNewRow(container.nextElementSibling, item);
+                // 确保按钮参数正确传递
+                const addButton = container.nextElementSibling;
+                addNewRow(addButton, item);
             });
         }
 
@@ -786,5 +1119,4 @@
         // 页面加载时调用
         loadHitokoto();
     </script>
-</body>
 </html>
