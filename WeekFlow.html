@@ -2,6 +2,7 @@
 <html lang="zh-CN">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>智能周报生成系统</title>
         <script src="https://cdn.jsdelivr.net/npm/docx@8.0.1/build/index.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
@@ -395,20 +396,76 @@
             }
 
             /* 移动端适配保持原样 */
-            @media (max-width: 768px) {
+            @media (max-width: 1200px) {
+                .left-panel {
+                    width: 25%;
+                }
+                .right-content {
+                    margin-left: calc(25% + 20px);
+                }
+            }
+
+            @media (max-width: 992px) {
+                .main-container {
+                    flex-direction: column;
+                }
                 .left-panel {
                     width: 100%;
-                    max-width: none;
+                    height: auto;
                     position: static;
+                    margin-bottom: 1.5rem;
                 }
-                
                 .right-content {
                     margin-left: 0;
-                    max-width: none;
+                    width: 100%;
                 }
+            }
 
+            @media (max-width: 768px) {
+                .container {
+                    padding: 1rem;
+                }
+                
+                .section-title {
+                    font-size: 1.1rem;
+                    padding-left: 24px;
+                }
+                
+                .input-group {
+                    flex-wrap: wrap;
+                }
+                
+                .date-picker {
+                    width: 100%;
+                    margin: 0.5rem 0;
+                }
+            }
+
+            @media (max-width: 576px) {
+                .data-card {
+                    flex-direction: column;
+                    align-items: flex-start;
+                }
+                
+                .data-value {
+                    font-size: 1.5rem;
+                }
+                
+                .export-btn {
+                    width: 100%;
+                    padding: 12px;
+                }
+                
                 .stats-grid {
                     grid-template-columns: 1fr;
+                }
+                
+                .input-field {
+                    min-height: 48px;
+                }
+                
+                .drag-handle {
+                    padding: 0.8rem;
                 }
             }
         </style>
